@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ServiceSelection, Service } from './ServiceSelection';
 import { BarberSelection, Barber } from './BarberSelection';
 import { useAvailability } from '@/hooks/useAvailability';
@@ -61,7 +62,7 @@ export function BookingForm() {
           Tu reserva ha sido confirmada. Te enviamos los detalles a {customerInfo.email}.
         </p>
         <Button asChild size="lg">
-          <a href="/">Volver al inicio</a>
+          <Link href="/">Volver al inicio</Link>
         </Button>
       </div>
     );

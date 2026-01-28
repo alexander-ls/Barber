@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scissors, Mail, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -92,7 +93,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex justify-center border-t py-6">
           <p className="text-xs text-muted-foreground">
-            Solo personal autorizado. Si eres cliente, vuelve al <a href="/" className="text-primary hover:underline">inicio</a>.
+            Solo personal autorizado. Si eres cliente, vuelve al <Link href="/" className="text-primary hover:underline">inicio</Link>.
           </p>
         </CardFooter>
       </Card>

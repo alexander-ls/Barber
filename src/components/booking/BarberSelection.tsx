@@ -75,7 +75,7 @@ export function BarberSelection({ onSelect, selectedId }: BarberSelectionProps) 
               <div className="flex-1">
                 <h3 className="font-bold text-lg leading-tight mb-1">{barber.name}</h3>
                 <p className="text-xs text-muted-foreground line-clamp-2 italic">
-                  "{barber.bio || 'Especialista en barbería clásica.'}"
+                  &quot;{barber.bio || 'Especialista en barbería clásica.'}&quot;
                 </p>
               </div>
             </div>

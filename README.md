@@ -78,3 +78,33 @@ Si deseas que cada barbero gestione solo su propia agenda o tenga configuracione
 
 ### Seguridad del Panel
 La ruta `/admin` tiene una protección básica en el cliente (`src/app/admin/page.tsx`). Para una seguridad de nivel producción, puedes implementar un **Middleware** de Next.js que verifique la sesión antes de renderizar cualquier página administrativa.
+
+---
+
+## 🚀 Guía de Despliegue en Vercel
+
+Sigue estos pasos para poner tu barbería online en menos de 5 minutos:
+
+### 1. Preparar el Repositorio
+Asegúrate de haber subido todos los cambios a tu repositorio de GitHub.
+
+### 2. Conectar con Vercel
+1. Entra a [Vercel](https://vercel.com/) e inicia sesión con GitHub.
+2. Haz clic en el botón **"Add New..."** y luego en **"Project"**.
+3. Busca tu repositorio de la barbería y haz clic en **"Import"**.
+
+### 3. Configurar Variables de Entorno
+En la sección **"Environment Variables"**, debes agregar las siguientes (puedes copiarlas de tu `.env.local`):
+
+| Variable | Valor |
+| :--- | :--- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Tu URL de Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Tu Clave Anónima (Anon Key) |
+
+### 4. Desplegar
+1. Haz clic en **"Deploy"**.
+2. ¡Listo! Vercel te dará una URL pública para tu aplicación.
+
+### Notas importantes para Producción
+- **Supabase Auth**: Recuerda agregar la URL de tu sitio desplegado (ej. `https://tu-barberia.vercel.app`) en la lista de URLs permitidas en el panel de Supabase (**Auth -> URL Configuration -> Redirect URLs**). Esto es esencial para que el Magic Link funcione correctamente.
+- **Optimización**: El proyecto ya está configurado para optimizar imágenes y pasar los chequeos de build automáticamente.
