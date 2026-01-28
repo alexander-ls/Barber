@@ -49,3 +49,32 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 - **Prevención de Double-booking**: Lógica robusta a nivel de base de datos (PostgreSQL EXCLUDE constraint).
 - **Sincronización en tiempo real**: Los turnos se bloquean instantáneamente para otros usuarios gracias a Supabase Realtime.
 - **Panel de Administración**: Acceso protegido para barberos para ver su agenda y marcar servicios como completados.
+
+---
+
+## 🔐 Acceso Administrativo y Gestión
+
+### ¿Cómo ingresar al panel?
+1. Dirígete a la ruta `/login`.
+2. Ingresa un correo electrónico válido.
+3. Recibirás un **Magic Link** en tu bandeja de entrada. Haz clic en el enlace para ser redirigido automáticamente al panel de `/admin`.
+
+### Gestión de Barberos y Servicios
+En esta versión MVP, la gestión de datos maestros se realiza directamente desde el **Panel de Supabase**:
+
+1. **Agregar/Modificar Barberos**:
+   - Ve a la tabla `barbers`.
+   - Puedes cambiar nombres, bios y enlaces de imágenes (`avatar_url`).
+2. **Agregar/Modificar Servicios**:
+   - Ve a la tabla `services`.
+   - Define el nombre, precio y, muy importante, la **duración en minutos**, ya que esto calcula automáticamente los bloques de tiempo disponibles.
+3. **Control de la Agenda**:
+   - En `/admin`, cada barbero puede ver los turnos del día, marcarlos como "Completados" o cancelarlos. Esto liberará los espacios en tiempo real en la vista del cliente.
+
+### Personalización para cada Barbero
+Si deseas que cada barbero gestione solo su propia agenda o tenga configuraciones específicas:
+- **Modificación Técnica**: Se recomienda implementar **Row Level Security (RLS)** en Supabase.
+- **Identificación**: Actualmente, el panel muestra todos los turnos. Puedes filtrar la consulta en `src/components/admin/AgendaView.tsx` usando el `auth.uid()` si vinculas la tabla `barbers` con la tabla `auth.users` de Supabase.
+
+### Seguridad del Panel
+La ruta `/admin` tiene una protección básica en el cliente (`src/app/admin/page.tsx`). Para una seguridad de nivel producción, puedes implementar un **Middleware** de Next.js que verifique la sesión antes de renderizar cualquier página administrativa.
