@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Barbería Premium - App de Reservas
 
-## Getting Started
+Este es el MVP de una aplicación full-stack para la gestión de reservas en una barbería, construida con Next.js, Supabase y Shadcn/UI.
 
-First, run the development server:
+## 🚀 Cómo correr el proyecto de forma local
 
+### 1. Clonar el repositorio e instalar dependencias
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Instalar las dependencias de Node.js
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configurar variables de entorno
+Crea un archivo `.env.local` en la raíz del proyecto basándote en el ejemplo:
+```bash
+cp .env.local.example .env.local
+```
+Completa las variables con tus credenciales de Supabase:
+- `NEXT_PUBLIC_SUPABASE_URL`: La URL de tu proyecto Supabase.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: La clave anónima (anon key) de tu proyecto.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Configurar la Base de Datos
+1. Ve al panel de control de **Supabase**.
+2. Abre el **SQL Editor**.
+3. Copia y pega el contenido del archivo `supabase/migrations/initial_schema.sql` y ejecútalo.
+   - Esto creará las tablas `barbers`, `services`, `appointments`, habilitará la extensión `btree_gist` para evitar doble reservas y cargará datos de prueba.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Habilitar Realtime
+Asegúrate de que la publicación de Realtime esté activa para la tabla `appointments`. El script SQL ya incluye los comandos para habilitarla, pero puedes verificarlo en el panel de Supabase (Database -> Replication).
 
-## Learn More
+### 5. Correr el servidor de desarrollo
+```bash
+npm run dev
+```
+La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ Tecnologías utilizadas
+- **Framework**: Next.js (App Router)
+- **Estilos**: Tailwind CSS + Shadcn/UI
+- **Base de Datos & Auth**: Supabase
+- **Estado**: React Query (TanStack Query)
+- **Iconos**: Lucide React
+- **Fechas**: date-fns
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📱 Funcionalidades
+- **Reserva de turnos**: Flujo multi-paso intuitivo y mobile-first.
+- **Prevención de Double-booking**: Lógica robusta a nivel de base de datos (PostgreSQL EXCLUDE constraint).
+- **Sincronización en tiempo real**: Los turnos se bloquean instantáneamente para otros usuarios gracias a Supabase Realtime.
+- **Panel de Administración**: Acceso protegido para barberos para ver su agenda y marcar servicios como completados.
