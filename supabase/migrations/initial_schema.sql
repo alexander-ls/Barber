@@ -54,4 +54,5 @@ INSERT INTO barbers (name, bio) VALUES
 INSERT INTO services (name, description, duration_minutes, price) VALUES
 ('Corte de Cabello', 'Corte clásico o moderno con terminación a navaja.', 30, 15.00),
 ('Recorte de Barba', 'Perfilado y rebajado de barba con toalla caliente.', 20, 10.00),
-('Combo Imperial', 'Corte de cabello + Barba completa.', 50, 22.00);
+('Combo Imperial', 'Corte de cabello + Barba completa.', 50, 22.00),
+('Bloqueo de Horario', 'Uso interno para bloquear turnos.', 30, 0.00);

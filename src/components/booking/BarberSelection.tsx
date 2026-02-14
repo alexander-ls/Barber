@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { User, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 // Need Avatar component from shadcn
 // I'll add it if it doesn't exist, but I'll use a simple div for now if not.
@@ -59,9 +60,9 @@ export function BarberSelection({ onSelect, selectedId }: BarberSelectionProps) 
           <CardContent className="p-0 flex flex-col h-full">
             <div className="flex p-6 gap-4 flex-1">
               <div className="relative">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-background">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-background relative">
                   {barber.avatar_url ? (
-                    <img src={barber.avatar_url} alt={barber.name} className="w-full h-full object-cover" />
+                    <Image src={barber.avatar_url} alt={barber.name} fill className="object-cover" />
                   ) : (
                     <User className="w-8 h-8 text-muted-foreground" />
                   )}
