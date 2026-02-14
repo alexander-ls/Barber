@@ -1,8 +1,69 @@
+'use client';
+
 import Link from 'next/link';
 import { Scissors, Calendar, Clock, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+interface Service {
+  id: string;
+  name: string;
+  description: string | null;
+  duration_minutes: number;
+  price: number;
+}
+
+interface Barber {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  bio: string | null;
+}
 
 export default function Home() {
+  const { data: services, isLoading: isLoadingServices } = useQuery({
+    queryKey: ['services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .order('price', { ascending: true });
+      if (error) throw error;
+      return data as Service[];
+    },
+  });
+
+  const { data: barbers, isLoading: isLoadingBarbers } = useQuery({
+    queryKey: ['barbers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('barbers')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data as Barber[];
+    },
+  });
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getAvatarUrl = (path: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith('http')) return path;
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -59,20 +120,71 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: 'Corte Clásico', desc: 'Tijera y máquina con terminación detallada.', price: '$15' },
-              { title: 'Barba Completa', desc: 'Perfilado, rebajado y tratamiento con toalla.', price: '$10' },
-              { title: 'Combo Imperial', desc: 'El servicio completo para el caballero moderno.', price: '$22' }
-            ].map((service, i) => (
-              <div key={i} className="p-8 rounded-2xl bg-card border hover:shadow-lg transition-all text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Scissors className="text-primary w-6 h-6" />
+            {isLoadingServices ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-8 rounded-2xl bg-card border text-center space-y-4">
+                  <Skeleton className="w-12 h-12 rounded-full mx-auto" />
+                  <Skeleton className="h-6 w-3/4 mx-auto" />
+                  <Skeleton className="h-4 w-full mx-auto" />
+                  <Skeleton className="h-8 w-1/4 mx-auto" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-                <p className="text-muted-foreground mb-4">{service.desc}</p>
-                <span className="text-2xl font-bold text-primary">{service.price}</span>
-              </div>
-            ))}
+              ))
+            ) : (
+              services?.map((service) => (
+                <div key={service.id} className="p-8 rounded-2xl bg-card border hover:shadow-lg transition-all text-center flex flex-col h-full">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Scissors className="text-primary w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">{service.name}</h3>
+                  <p className="text-muted-foreground mb-4 text-sm flex-1">{service.description || 'Servicio profesional personalizado.'}</p>
+                  <div className="mb-6">
+                    <span className="text-2xl font-bold text-primary">${service.price}</span>
+                    <span className="text-muted-foreground text-sm ml-2">({service.duration_minutes} min)</span>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="w-full rounded-full">
+                    <Link href={`/booking?serviceId=${service.id}`}>Reservar</Link>
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Barbers Section */}
+      <section id="barbers" className="py-20 px-4 bg-muted/30">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Nuestro Equipo</h2>
+            <div className="h-1 w-20 bg-primary mx-auto" />
+            <p className="mt-4 text-muted-foreground">Profesionales expertos a tu disposición</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+            {isLoadingBarbers ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center space-y-4">
+                  <Skeleton className="w-24 h-24 rounded-full" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))
+            ) : (
+              barbers?.map((barber) => (
+                <div key={barber.id} className="flex flex-col items-center text-center group">
+                  <Avatar className="w-24 h-24 mb-4 border-2 border-background shadow-md transition-transform group-hover:scale-105">
+                    <AvatarImage src={getAvatarUrl(barber.avatar_url)} alt={barber.name} className="object-cover" />
+                    <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary">
+                      {getInitials(barber.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h3 className="text-lg font-bold">{barber.name}</h3>
+                  <p className="text-sm text-muted-foreground italic line-clamp-2 mt-1 px-4">
+                    {barber.bio || 'Barbero profesional'}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
