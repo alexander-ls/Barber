@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { ServiceSelection, Service } from './ServiceSelection';
 import { BarberSelection, Barber } from './BarberSelection';
 import { useAvailability } from '@/hooks/useAvailability';
@@ -15,13 +18,38 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Calendar as CalendarIcon, User, Scissors } from 'lucide-react';
 
-export function BookingForm() {
+function BookingFormContent() {
+  const searchParams = useSearchParams();
+  const serviceIdParam = searchParams.get('serviceId');
+
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' });
+
+  const { data: services } = useQuery({
+    queryKey: ['services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .order('price', { ascending: true });
+      if (error) throw error;
+      return data as Service[];
+    },
+  });
+
+  useEffect(() => {
+    if (services && serviceIdParam && !selectedService) {
+      const service = services.find(s => s.id === serviceIdParam);
+      if (service) {
+        setSelectedService(service);
+        setStep(2);
+      }
+    }
+  }, [services, serviceIdParam, selectedService]);
 
   const { data: availableSlots, isLoading: isLoadingSlots } = useAvailability(
     selectedBarber?.id || null,
@@ -116,9 +144,11 @@ export function BookingForm() {
                 selectedId={selectedBarber?.id}
                 onSelect={(b) => { setSelectedBarber(b); nextStep(); }}
               />
-              <Button variant="ghost" onClick={prevStep} className="gap-2">
-                <ChevronLeft className="w-4 h-4" /> Volver
-              </Button>
+              <div className="flex justify-start">
+                <Button variant="ghost" onClick={prevStep} className="gap-2">
+                  <ChevronLeft className="w-4 h-4" /> Volver
+                </Button>
+              </div>
             </div>
           )}
 
@@ -215,7 +245,7 @@ export function BookingForm() {
                 <h4 className="font-bold border-bottom pb-2">Resumen de tu turno</h4>
                 <div className="grid grid-cols-2 gap-y-2 text-sm">
                   <span className="text-muted-foreground">Servicio:</span>
-                  <span className="font-medium text-right">{selectedService?.name} ({selectedService?.price})</span>
+                  <span className="font-medium text-right">{selectedService?.name} (${selectedService?.price})</span>
                   <span className="text-muted-foreground">Barbero:</span>
                   <span className="font-medium text-right">{selectedBarber?.name}</span>
                   <span className="text-muted-foreground">Fecha:</span>
@@ -238,5 +268,13 @@ export function BookingForm() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export function BookingForm() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+      <BookingFormContent />
+    </Suspense>
   );
 }
