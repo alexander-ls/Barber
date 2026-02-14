@@ -9,6 +9,8 @@ export type Database = {
           name: string;
           avatar_url: string | null;
           bio: string | null;
+          user_id: string | null;
+          role: 'admin' | 'barber';
           created_at: string;
         };
         Insert: {
@@ -16,6 +18,8 @@ export type Database = {
           name: string;
           avatar_url?: string | null;
           bio?: string | null;
+          user_id?: string | null;
+          role?: 'admin' | 'barber';
           created_at?: string;
         };
         Update: {
@@ -23,6 +27,8 @@ export type Database = {
           name?: string;
           avatar_url?: string | null;
           bio?: string | null;
+          user_id?: string | null;
+          role?: 'admin' | 'barber';
           created_at?: string;
         };
       };

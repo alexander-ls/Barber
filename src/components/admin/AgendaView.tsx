@@ -14,7 +14,24 @@ import { toast } from 'sonner';
 export function AgendaView() {
   const queryClient = useQueryClient();
 
-  const { data: appointments, isLoading } = useQuery({
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('barbers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) return null;
+      return data as any;
+    }
+  });
+
+  const { data: appointments, isLoading: isLoadingAppointments } = useQuery({
     queryKey: ['admin-appointments'],
     queryFn: async () => {
       const today = startOfDay(new Date()).toISOString();
@@ -47,7 +64,7 @@ export function AgendaView() {
     }
   });
 
-  if (isLoading) {
+  if (isLoadingProfile || isLoadingAppointments) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full" />)}
@@ -55,11 +72,27 @@ export function AgendaView() {
     );
   }
 
+  if (!profile) {
+    return (
+      <Card className="bg-destructive/10 border-destructive">
+        <CardContent className="p-12 text-center text-destructive">
+          No tienes un perfil de barbero asignado. Contacta al administrador.
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Agenda de Hoy</h2>
-        <Badge variant="outline" className="px-3 py-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Agenda de Hoy</h2>
+          <p className="text-muted-foreground">
+            Hola, <span className="font-semibold text-foreground">{profile.name}</span>
+            {profile.role === 'admin' ? ' (Administrador)' : ' (Barbero)'}
+          </p>
+        </div>
+        <Badge variant="outline" className="px-3 py-1 h-fit w-fit">
           {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
         </Badge>
       </div>
