@@ -16,6 +16,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { addMinutes } from 'date-fns';
 
+interface BarberProfile {
+  id: string;
+  name: string;
+  role: 'admin' | 'barber';
+  user_id: string;
+}
+
+interface AppointmentWithDetails {
+  id: string;
+  start_time: string;
+  end_time: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  status: 'confirmed' | 'completed' | 'cancelled' | 'blocked';
+  services: { name: string } | null;
+  barbers: { name: string } | null;
+}
+
 export function AgendaView() {
   const queryClient = useQueryClient();
 
@@ -32,7 +51,7 @@ export function AgendaView() {
         .single();
 
       if (error) return null;
-      return data as any;
+      return data as unknown as BarberProfile;
     }
   });
 
@@ -51,7 +70,7 @@ export function AgendaView() {
         .order('start_time', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as unknown as AppointmentWithDetails[];
     },
   });
 
@@ -61,16 +80,23 @@ export function AgendaView() {
 
   const createBlockMutation = useMutation({
     mutationFn: async () => {
-      const { data: services } = await (supabase.from('services') as any).select('id').eq('name', 'Bloqueo de Horario').single();
-      if (!services) throw new Error('Servicio de bloqueo no encontrado');
+      if (!profile) return;
+
+      const { data: service } = await supabase
+        .from('services')
+        .select('id')
+        .eq('name', 'Bloqueo de Horario')
+        .single();
+
+      if (!service) throw new Error('Servicio de bloqueo no encontrado');
 
       const start = new Date(startOfDay(new Date()));
       const [hours, minutes] = blockTime.split(':').map(Number);
       start.setHours(hours, minutes);
 
-      const { error } = await (supabase.from('appointments') as any).insert({
+      const { error } = await supabase.from('appointments').insert({
         barber_id: profile.id,
-        service_id: services.id,
+        service_id: service.id,
         customer_name: 'BLOQUEO',
         customer_email: 'admin@barberia.com',
         start_time: start.toISOString(),
@@ -84,15 +110,15 @@ export function AgendaView() {
       toast.success('Horario bloqueado');
       setIsBlocking(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error('Error al bloquear: ' + error.message);
     }
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: 'confirmed' | 'completed' | 'cancelled' | 'blocked' }) => {
-      const { error } = await (supabase
-        .from('appointments') as any)
+      const { error } = await supabase
+        .from('appointments')
         .update({ status })
         .eq('id', id);
       if (error) throw error;
@@ -177,7 +203,7 @@ export function AgendaView() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {appointments?.map((app: any) => (
+          {appointments?.map((app) => (
             <Card key={app.id} className={`${app.status === 'completed' ? 'opacity-60 grayscale' : ''} ${app.status === 'blocked' ? 'border-amber-500 bg-amber-50' : ''}`}>
               <CardContent className="p-6 flex flex-col md:flex-row gap-6">
                 <div className="flex-1 space-y-4">
