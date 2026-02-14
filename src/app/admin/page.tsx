@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { AgendaView } from '@/components/admin/AgendaView';
 import { BarberManagement } from '@/components/admin/BarberManagement';
@@ -11,9 +12,13 @@ import { Scissors, LogOut, LayoutDashboard, Calendar, Users, Settings, Lock } fr
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
+interface BarberProfile {
+  role: 'admin' | 'barber';
+}
+
 export default function AdminPage() {
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'barber' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +38,7 @@ export default function AdminPage() {
         .eq('user_id', session.user.id)
         .single();
 
-      setUserRole((profile as any)?.role || 'barber');
+      setUserRole((profile as unknown as BarberProfile)?.role || 'barber');
       setIsLoading(false);
     });
 

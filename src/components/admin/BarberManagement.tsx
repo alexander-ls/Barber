@@ -48,6 +48,15 @@ const barberSchema = z.object({
 
 type BarberFormValues = z.infer<typeof barberSchema>;
 
+interface Barber {
+  id: string;
+  name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  role: 'admin' | 'barber';
+  user_id: string | null;
+}
+
 export function BarberManagement() {
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -61,7 +70,7 @@ export function BarberManagement() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as any[];
+      return data as unknown as Barber[];
     },
   });
 
@@ -69,7 +78,7 @@ export function BarberManagement() {
     queryKey: ['available-users'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('available_users' as any)
+        .from('available_users')
         .select('*');
       if (error) throw error;
       return data as { id: string; email: string }[];
@@ -107,7 +116,7 @@ export function BarberManagement() {
 
   const createBarberMutation = useMutation({
     mutationFn: async (values: BarberFormValues) => {
-      const { data, error } = await (supabase.from('barbers') as any)
+      const { data, error } = await supabase.from('barbers')
         .insert({
           name: values.name,
           bio: values.bio,
@@ -122,7 +131,7 @@ export function BarberManagement() {
       if (file) {
         const publicUrl = await uploadAvatar(data.id);
         if (publicUrl) {
-          await (supabase.from('barbers') as any)
+          await supabase.from('barbers')
             .update({ avatar_url: publicUrl })
             .eq('id', data.id);
         }
@@ -135,7 +144,7 @@ export function BarberManagement() {
       form.reset();
       setFile(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error('Error al crear barbero: ' + error.message);
     },
   });

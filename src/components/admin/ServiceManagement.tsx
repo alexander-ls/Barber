@@ -38,6 +38,13 @@ const serviceSchema = z.object({
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
 
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration_minutes: number;
+}
+
 export function ServiceManagement() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,12 +58,12 @@ export function ServiceManagement() {
         .select('*')
         .order('price', { ascending: true });
       if (error) throw error;
-      return data as any[];
+      return data as unknown as Service[];
     },
   });
 
   const form = useForm<ServiceFormValues>({
-    resolver: zodResolver(serviceSchema) as any,
+    resolver: zodResolver(serviceSchema),
     defaultValues: {
       name: '',
       price: 0,
@@ -72,17 +79,16 @@ export function ServiceManagement() {
         duration_minutes: values.duration_minutes,
       };
 
-      let error;
       if (editingId) {
-        ({ error } = await (supabase
-          .from('services') as any)
+        const { error } = await supabase
+          .from('services')
           .update(payload)
-          .eq('id', editingId));
+          .eq('id', editingId);
+        if (error) throw error;
       } else {
-        ({ error } = await (supabase.from('services') as any).insert(payload));
+        const { error } = await supabase.from('services').insert(payload);
+        if (error) throw error;
       }
-
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-services'] });
@@ -90,7 +96,7 @@ export function ServiceManagement() {
       setIsOpen(false);
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error('Error al guardar: ' + error.message);
     },
   });
@@ -111,7 +117,7 @@ export function ServiceManagement() {
     setEditingId(null);
   };
 
-  const onEdit = (service: any) => {
+  const onEdit = (service: Service) => {
     setEditingId(service.id);
     form.reset({
       name: service.name,

@@ -33,7 +33,8 @@ CREATE POLICY "Admins can delete avatars"
   );
 
 -- 3. View to allow admins to see auth users for linking
-CREATE OR REPLACE VIEW public.available_users AS
+-- We use security_invoker = false (default) to use the view owner's permissions (postgres)
+CREATE OR REPLACE VIEW public.available_users WITH (security_invoker = false) AS
   SELECT id, email FROM auth.users;
 
 GRANT SELECT ON public.available_users TO authenticated;
