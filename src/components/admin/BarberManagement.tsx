@@ -35,7 +35,7 @@ import { UserPlus, Trash2, Camera, User } from 'lucide-react';
 const barberSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
   bio: z.string().optional(),
-  email: z.string().email('Email inválido').nullable().or(z.literal('')),
+  user_id: z.string().uuid('UID inválido').nullable().or(z.literal('')),
 });
 
 type BarberFormValues = z.infer<typeof barberSchema>;
@@ -71,7 +71,7 @@ export function BarberManagement() {
     defaultValues: {
       name: '',
       bio: '',
-      email: '',
+      user_id: '',
     },
   });
 
@@ -96,27 +96,11 @@ export function BarberManagement() {
 
   const createBarberMutation = useMutation({
     mutationFn: async (values: BarberFormValues) => {
-      let resolvedUserId = null;
-
-      if (values.email) {
-        // Resolve email to user_id using the public view
-        const { data: userData, error: userError } = await supabase
-          .from('available_users')
-          .select('id')
-          .eq('email', values.email)
-          .single();
-
-        if (userError || !userData) {
-          throw new Error('El usuario debe estar registrado previamente en la plataforma.');
-        }
-        resolvedUserId = userData.id;
-      }
-
       const { data, error } = await supabase.from('barbers')
         .insert({
           name: values.name,
           bio: values.bio,
-          user_id: resolvedUserId,
+          user_id: values.user_id || null,
           role: 'barber',
         })
         .select()
@@ -141,7 +125,7 @@ export function BarberManagement() {
       setFile(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error('Error al crear barbero: ' + error.message);
     },
   });
 
@@ -178,7 +162,7 @@ export function BarberManagement() {
             <DialogHeader>
               <DialogTitle>Añadir Nuevo Barbero</DialogTitle>
               <DialogDescription>
-                Completa los datos del barbero. Debe estar registrado con su email previamente.
+                Completa los datos del barbero. Ingresa el UUID del usuario registrado.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -194,13 +178,13 @@ export function BarberManagement() {
                 <Textarea id="bio" {...form.register('bio')} placeholder="Breve descripción..." />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email del Usuario</Label>
-                <Input id="email" {...form.register('email')} placeholder="barbero@ejemplo.com" />
+                <Label htmlFor="user_id">User UID</Label>
+                <Input id="user_id" {...form.register('user_id')} placeholder="bb061844-..." />
                 <p className="text-[10px] text-muted-foreground">
-                  El barbero debe haber creado una cuenta antes de ser vinculado aquí.
+                  Pega aquí el UUID del usuario que se encuentra en Supabase Auth.
                 </p>
-                {form.formState.errors.email && (
-                  <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+                {form.formState.errors.user_id && (
+                  <p className="text-xs text-destructive">{form.formState.errors.user_id.message}</p>
                 )}
               </div>
               <div className="space-y-2">
