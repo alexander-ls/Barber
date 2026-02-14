@@ -2,19 +2,19 @@
 > barber-app@0.1.0 dev
 > next dev
 
+ ⚠ Port 3000 is in use, trying 3001 instead.
    ▲ Next.js 15.1.6
-   - Local:        http://localhost:3000
-   - Network:      http://192.168.0.2:3000
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.0.2:3001
 
  ✓ Starting...
- ✓ Ready in 1896ms
+ ✓ Ready in 1969ms
  ○ Compiling / ...
- ✓ Compiled / in 8.4s (793 modules)
- HEAD / 200 in 8940ms
+ ✓ Compiled / in 4.8s (793 modules)
+ HEAD / 200 in 5717ms
  ○ Compiling /admin ...
- ✓ Compiled /admin in 3.9s (2072 modules)
- GET /admin 200 in 4522ms
- ○ Compiling /login ...
- ✓ Compiled /login in 567ms (2075 modules)
- GET /login 200 in 695ms
- GET /login 200 in 22ms
+ ✓ Compiled /admin in 4.2s (2182 modules)
+ GET /admin 200 in 5405ms
+ ✓ Compiled /login in 444ms (2177 modules)
+ GET /login 200 in 565ms
+ GET /login 200 in 19ms

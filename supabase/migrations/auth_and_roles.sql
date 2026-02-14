@@ -45,9 +45,15 @@ CREATE POLICY "Admins can manage all services" ON services
   FOR ALL TO authenticated USING (get_my_role() = 'admin');
 
 -- 6. Policies for APPOINTMENTS table
+
+-- Crucial: Hide sensitive PII (name, email, phone) from public select
+-- We do this by allowing public to ONLY see columns needed for availability
+REVOKE SELECT ON appointments FROM anon;
+GRANT SELECT (id, barber_id, start_time, end_time, status) ON appointments TO anon;
+
 DROP POLICY IF EXISTS "Public can view appointments for availability" ON appointments;
 CREATE POLICY "Public can view appointments for availability" ON appointments
-  FOR SELECT TO public USING (true);
+  FOR SELECT TO anon USING (true);
 
 DROP POLICY IF EXISTS "Public can create appointments" ON appointments;
 CREATE POLICY "Public can create appointments" ON appointments

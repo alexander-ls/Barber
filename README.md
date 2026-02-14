@@ -108,3 +108,40 @@ En la sección **"Environment Variables"**, debes agregar las siguientes (puedes
 ### Notas importantes para Producción
 - **Supabase Auth**: Recuerda agregar la URL de tu sitio desplegado (ej. `https://tu-barberia.vercel.app`) en la lista de URLs permitidas en el panel de Supabase (**Auth -> URL Configuration -> Redirect URLs**). Esto es esencial para que el Magic Link funcione correctamente.
 - **Optimización**: El proyecto ya está configurado para optimizar imágenes y pasar los chequeos de build automáticamente.
+
+---
+
+## 🧪 Guía de Pruebas de Roles y Seguridad (RBAC/RLS)
+
+Para probar que el sistema de roles y las políticas de seguridad funcionan correctamente, sigue estos pasos:
+
+### 1. Preparar Usuarios en Supabase
+1. Ve a **Authentication -> Users** en Supabase.
+2. Crea dos usuarios nuevos (ej. `admin@test.com` y `barbero@test.com`).
+3. Copia el `User ID` (UUID) de cada uno.
+
+### 2. Vincular Usuarios con Barberos
+1. Ve a la tabla `barbers` en el **Table Editor**.
+2. Para un barbero existente (ej. Juan Pérez), pega el UUID del usuario `admin@test.com` en la columna `user_id` y asegúrate de que su `role` sea `admin`.
+3. Para otro barbero, pega el UUID de `barbero@test.com` y ponle el `role` de `barber`.
+
+### 3. Probar las Políticas RLS
+- **Como Administrador (`admin@test.com`)**:
+  - Logueate en `/login`.
+  - En `/admin`, deberías ver **todos** los turnos de la barbería.
+  - Deberías tener permisos para marcar cualquier turno como completado.
+- **Como Barbero (`barbero@test.com`)**:
+  - Logueate en `/login`.
+  - En `/admin`, **solo deberías ver tus propios turnos**.
+  - Puedes usar el botón **"Bloquear Horario"** para cerrar espacios en tu agenda manualamente.
+  - Si intentas acceder a datos de otro barbero vía API/Consola, Supabase bloqueará la petición gracias al RLS.
+- **Como Cliente (Sin login)**:
+  - Ve a `/booking`.
+  - Deberías poder ver la disponibilidad (lectura de turnos) y crear una cita nueva (escritura), pero no podrás modificar turnos existentes ni ver datos privados de los barberos.
+
+### 4. Verificar en la UI
+El panel de `/admin` mostrará un mensaje de bienvenida personalizado:
+- *"Hola, Juan Pérez (Administrador)"*
+- *"Hola, Carlos (Barbero)"*
+
+Si un usuario autenticado entra pero **no está vinculado** a ningún registro en la tabla `barbers`, verá un error indicando que no tiene un perfil asignado.
