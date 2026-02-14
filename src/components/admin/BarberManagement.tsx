@@ -24,13 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -42,8 +35,7 @@ import { UserPlus, Trash2, Camera, User } from 'lucide-react';
 const barberSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
   bio: z.string().optional(),
-  user_id: z.string().nullable(),
-  role: z.enum(['admin', 'barber']),
+  email: z.string().email('Email inválido').nullable().or(z.literal('')),
 });
 
 type BarberFormValues = z.infer<typeof barberSchema>;
@@ -74,24 +66,12 @@ export function BarberManagement() {
     },
   });
 
-  const { data: availableUsers } = useQuery({
-    queryKey: ['available-users'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('available_users')
-        .select('*');
-      if (error) throw error;
-      return data as { id: string; email: string }[];
-    },
-  });
-
   const form = useForm<BarberFormValues>({
     resolver: zodResolver(barberSchema),
     defaultValues: {
       name: '',
       bio: '',
-      user_id: null,
-      role: 'barber',
+      email: '',
     },
   });
 
@@ -116,12 +96,28 @@ export function BarberManagement() {
 
   const createBarberMutation = useMutation({
     mutationFn: async (values: BarberFormValues) => {
+      let resolvedUserId = null;
+
+      if (values.email) {
+        // Resolve email to user_id using the public view
+        const { data: userData, error: userError } = await supabase
+          .from('available_users')
+          .select('id')
+          .eq('email', values.email)
+          .single();
+
+        if (userError || !userData) {
+          throw new Error('El usuario debe estar registrado previamente en la plataforma.');
+        }
+        resolvedUserId = userData.id;
+      }
+
       const { data, error } = await supabase.from('barbers')
         .insert({
           name: values.name,
           bio: values.bio,
-          user_id: values.user_id,
-          role: values.role,
+          user_id: resolvedUserId,
+          role: 'barber',
         })
         .select()
         .single();
@@ -145,7 +141,7 @@ export function BarberManagement() {
       setFile(null);
     },
     onError: (error: Error) => {
-      toast.error('Error al crear barbero: ' + error.message);
+      toast.error(error.message);
     },
   });
 
@@ -182,7 +178,7 @@ export function BarberManagement() {
             <DialogHeader>
               <DialogTitle>Añadir Nuevo Barbero</DialogTitle>
               <DialogDescription>
-                Completa los datos del barbero. Asegúrate de vincularlo a un usuario registrado.
+                Completa los datos del barbero. Debe estar registrado con su email previamente.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -198,36 +194,14 @@ export function BarberManagement() {
                 <Textarea id="bio" {...form.register('bio')} placeholder="Breve descripción..." />
               </div>
               <div className="space-y-2">
-                <Label>Vincular Usuario</Label>
-                <Select
-                  onValueChange={(val) => form.setValue('user_id', val === 'none' ? null : val)}
-                  defaultValue="none"
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un usuario" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin vincular</SelectItem>
-                    {availableUsers?.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Rol</Label>
-                <Select
-                  onValueChange={(val: 'admin' | 'barber') => form.setValue('role', val)}
-                  defaultValue="barber"
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="barber">Barbero</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="email">Email del Usuario</Label>
+                <Input id="email" {...form.register('email')} placeholder="barbero@ejemplo.com" />
+                <p className="text-[10px] text-muted-foreground">
+                  El barbero debe haber creado una cuenta antes de ser vinculado aquí.
+                </p>
+                {form.formState.errors.email && (
+                  <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="avatar">Foto de Perfil</Label>
