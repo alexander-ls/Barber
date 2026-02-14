@@ -96,6 +96,32 @@ export type Database = {
           created_at?: string;
         };
       };
+      working_hours: {
+        Row: {
+          id: string;
+          barber_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          barber_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          barber_id?: string;
+          day_of_week?: number;
+          start_time?: string;
+          end_time?: string;
+          is_active?: boolean;
+        };
+      };
     };
   };
 };
