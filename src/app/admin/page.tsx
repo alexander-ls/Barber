@@ -4,23 +4,37 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AgendaView } from '@/components/admin/AgendaView';
+import { BarberManagement } from '@/components/admin/BarberManagement';
+import { ServiceManagement } from '@/components/admin/ServiceManagement';
 import { Button } from '@/components/ui/button';
-import { Scissors, LogOut, LayoutDashboard, Calendar, Users, Settings } from 'lucide-react';
+import { Scissors, LogOut, LayoutDashboard, Calendar, Users, Settings, Lock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export default function AdminPage() {
   const router = useRouter();
   const [session, setSession] = useState<any>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'barber' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setIsLoading(false);
+
       if (!session) {
         router.push('/login');
+        return;
       }
+
+      // Check role
+      const { data: profile } = await supabase
+        .from('barbers')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+
+      setUserRole((profile as any)?.role || 'barber');
+      setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -92,25 +106,33 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="services">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Servicios</CardTitle>
-              </CardHeader>
-              <CardContent className="p-12 text-center text-muted-foreground">
-                Módulo en desarrollo para el MVP.
-              </CardContent>
-            </Card>
+            {userRole === 'admin' ? (
+              <ServiceManagement />
+            ) : (
+              <Card className="bg-muted/50 border-dashed">
+                <CardContent className="p-12 text-center space-y-4">
+                  <Lock className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                  <div className="text-muted-foreground">
+                    Acceso restringido. Solo los administradores pueden gestionar servicios.
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="barbers">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Barberos</CardTitle>
-              </CardHeader>
-              <CardContent className="p-12 text-center text-muted-foreground">
-                Módulo en desarrollo para el MVP.
-              </CardContent>
-            </Card>
+            {userRole === 'admin' ? (
+              <BarberManagement />
+            ) : (
+              <Card className="bg-muted/50 border-dashed">
+                <CardContent className="p-12 text-center space-y-4">
+                  <Lock className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                  <div className="text-muted-foreground">
+                    Acceso restringido. Solo los administradores pueden gestionar la plantilla.
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="settings">
