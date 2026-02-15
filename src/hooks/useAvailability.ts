@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { addMinutes, isAfter, isBefore, parseISO, setHours, setMinutes, startOfDay } from 'date-fns';
+import { addMinutes, isAfter, isBefore, parseISO, setHours, setMinutes, startOfDay, getDay } from 'date-fns';
 import { useEffect } from 'react';
 
 export function useAvailability(barberId: string | null, date: Date | undefined, serviceDuration: number) {
@@ -33,6 +33,22 @@ export function useAvailability(barberId: string | null, date: Date | undefined,
     queryFn: async () => {
       if (!barberId || !date) return [];
 
+      const dayOfWeek = getDay(date);
+
+      // Fetch working hours for this barber and day
+      const { data: workingHours, error: whError } = await (supabase
+        .from('working_hours') as any)
+        .select('*')
+        .eq('barber_id', barberId)
+        .eq('day_of_week', dayOfWeek)
+        .eq('is_active', true)
+        .single();
+
+      if (whError && whError.code !== 'PGRST116') throw whError;
+
+      // If no working hours defined or inactive, no slots available
+      if (!workingHours) return [];
+
       const startOfSelectedDay = startOfDay(date).toISOString();
       const endOfSelectedDay = new Date(startOfDay(date).getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
 
@@ -47,11 +63,13 @@ export function useAvailability(barberId: string | null, date: Date | undefined,
       if (error) throw error;
 
       const slots = [];
-      const startTime = 9; // 9 AM
-      const endTime = 20; // 8 PM
+      const [startH, startM] = workingHours.start_time.split(':').map(Number);
+      const [endH, endM] = workingHours.end_time.split(':').map(Number);
 
-      let currentSlot = setMinutes(setHours(startOfDay(date), startTime), 0);
-      const dayEnd = setMinutes(setHours(startOfDay(date), endTime), 0);
+      let currentSlot = setMinutes(setHours(startOfDay(date), startH), startM);
+      const dayEnd = setMinutes(setHours(startOfDay(date), endH), endM);
+
+      const STEP = 15; // Starting slots every 15 minutes to allow better fit
 
       while (isBefore(currentSlot, dayEnd)) {
         const slotStart = currentSlot;
@@ -77,7 +95,7 @@ export function useAvailability(barberId: string | null, date: Date | undefined,
           slots.push(slotStart);
         }
 
-        currentSlot = addMinutes(currentSlot, 30);
+        currentSlot = addMinutes(currentSlot, STEP);
       }
 
       return slots;

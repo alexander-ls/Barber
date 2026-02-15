@@ -7,8 +7,9 @@ import { supabase } from '@/lib/supabase';
 import { AgendaView } from '@/components/admin/AgendaView';
 import { BarberManagement } from '@/components/admin/BarberManagement';
 import { ServiceManagement } from '@/components/admin/ServiceManagement';
+import { ScheduleManagement } from '@/components/admin/ScheduleManagement';
 import { Button } from '@/components/ui/button';
-import { Scissors, LogOut, LayoutDashboard, Calendar, Users, Settings, Lock } from 'lucide-react';
+import { Scissors, LogOut, LayoutDashboard, Calendar, Users, Settings, Lock, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
@@ -101,6 +102,9 @@ export default function AdminPage() {
             <TabsTrigger value="barbers" className="gap-2">
               <Users className="w-4 h-4" /> Barberos
             </TabsTrigger>
+            <TabsTrigger value="schedule" className="gap-2">
+              <Clock className="w-4 h-4" /> Horario
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2">
               <Settings className="w-4 h-4" /> Ajustes
             </TabsTrigger>
@@ -108,6 +112,10 @@ export default function AdminPage() {
 
           <TabsContent value="agenda">
             <AgendaView />
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <ScheduleManagement />
           </TabsContent>
 
           <TabsContent value="services">
