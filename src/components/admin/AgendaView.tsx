@@ -7,14 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, startOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, addDays, isSameDay, parseISO, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle2, Clock, User, Phone, Mail, Trash2, ShieldAlert, Plus } from 'lucide-react';
+import { CheckCircle2, Clock, User, Phone, Mail, Trash2, ShieldAlert, Plus, Calendar as CalendarIcon, Filter, TrendingUp, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { addMinutes } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BarberProfile {
   id: string;
@@ -31,12 +37,15 @@ interface AppointmentWithDetails {
   customer_email: string;
   customer_phone?: string;
   status: 'confirmed' | 'completed' | 'cancelled' | 'blocked';
-  services: { name: string } | null;
+  services: { name: string; price: number } | null;
   barbers: { name: string } | null;
 }
 
 export function AgendaView() {
   const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [filterRange, setFilterRange] = useState<'day' | 'week'>('day');
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('all');
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile'],
@@ -55,19 +64,50 @@ export function AgendaView() {
     }
   });
 
-  const { data: appointments, isLoading: isLoadingAppointments } = useQuery({
-    queryKey: ['admin-appointments'],
+  const { data: barbers } = useQuery({
+    queryKey: ['admin-barbers-list'],
+    enabled: profile?.role === 'admin',
     queryFn: async () => {
-      const today = startOfDay(new Date()).toISOString();
       const { data, error } = await supabase
+        .from('barbers')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: appointments, isLoading: isLoadingAppointments } = useQuery({
+    queryKey: ['admin-appointments', startOfDay(selectedDate).toISOString(), filterRange, selectedBarberId, profile?.id, profile?.role],
+    enabled: !!profile,
+    queryFn: async () => {
+      let query = supabase
         .from('appointments')
         .select(`
           *,
           barbers(name),
-          services(name)
-        `)
-        .gte('start_time', today)
-        .order('start_time', { ascending: true });
+          services(name, price)
+        `);
+
+      const start = startOfDay(selectedDate);
+      const end = filterRange === 'day'
+        ? endOfDay(selectedDate)
+        : endOfDay(addDays(selectedDate, 7));
+
+      query = query
+        .gte('start_time', start.toISOString())
+        .lt('start_time', end.toISOString());
+
+      if (profile?.role === 'admin') {
+        if (selectedBarberId !== 'all') {
+          query = query.eq('barber_id', selectedBarberId);
+        }
+      } else {
+        // Barbers only see their own appointments
+        query = query.eq('barber_id', profile?.id);
+      }
+
+      const { data, error } = await query.order('start_time', { ascending: true });
 
       if (error) throw error;
       return data as unknown as AppointmentWithDetails[];
@@ -90,7 +130,7 @@ export function AgendaView() {
 
       if (!service) throw new Error('Servicio de bloqueo no encontrado');
 
-      const start = new Date(startOfDay(new Date()));
+      const start = startOfDay(selectedDate);
       const [hours, minutes] = blockTime.split(':').map(Number);
       start.setHours(hours, minutes);
 
@@ -147,11 +187,22 @@ export function AgendaView() {
     );
   }
 
+  const totalCitas = appointments?.filter(a => a.status !== 'blocked').length || 0;
+  const totalRecaudado = appointments?.reduce((sum, app) => {
+    if (app.status === 'cancelled' || app.status === 'blocked') return sum;
+    return sum + (app.services?.price || 0);
+  }, 0) || 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Agenda de Hoy</h2>
+          <h2 className="text-2xl font-bold">
+            {filterRange === 'day'
+              ? (isSameDay(selectedDate, new Date()) ? 'Agenda de Hoy' : `Agenda para el ${format(selectedDate, "d 'de' MMMM", { locale: es })}`)
+              : 'Próximos 7 días'
+            }
+          </h2>
           <p className="text-muted-foreground">
             Hola, <span className="font-semibold text-foreground">{profile.name}</span>
             {profile.role === 'admin' ? ' (Administrador)' : ' (Barbero)'}
@@ -168,7 +219,7 @@ export function AgendaView() {
               <DialogHeader>
                 <DialogTitle>Bloquear Horario</DialogTitle>
                 <DialogDescription>
-                  Crea un bloqueo manual en tu agenda.
+                  Crea un bloqueo manual en la agenda para el día {format(selectedDate, "d 'de' MMMM", { locale: es })}.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -195,10 +246,104 @@ export function AgendaView() {
         </div>
       </div>
 
+      {/* Resumen Visual */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <CalendarIcon className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Citas</p>
+              <p className="text-2xl font-bold">{totalCitas}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-emerald-500/5 border-emerald-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2 bg-emerald-500/10 rounded-full">
+              <TrendingUp className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Recaudación Estimada</p>
+              <p className="text-2xl font-bold text-emerald-600">${totalRecaudado}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Barra de Filtros */}
+      <Card>
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 w-full space-y-2">
+            <Label className="flex items-center gap-2"><CalendarIcon className="w-4 h-4 text-muted-foreground" /> Seleccionar Fecha</Label>
+            <Input
+              type="date"
+              className="w-full"
+              value={format(selectedDate, 'yyyy-MM-dd')}
+              onChange={(e) => {
+                const date = parseISO(e.target.value);
+                if (!isNaN(date.getTime())) {
+                  setSelectedDate(date);
+                  setFilterRange('day');
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex-1 w-full space-y-2">
+            <Label className="flex items-center gap-2"><Filter className="w-4 h-4 text-muted-foreground" /> Navegación Rápida</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={isSameDay(selectedDate, new Date()) && filterRange === 'day' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => { setSelectedDate(new Date()); setFilterRange('day'); }}
+              >
+                Hoy
+              </Button>
+              <Button
+                variant={isSameDay(selectedDate, addDays(new Date(), 1)) && filterRange === 'day' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => { setSelectedDate(addDays(new Date(), 1)); setFilterRange('day'); }}
+              >
+                Mañana
+              </Button>
+              <Button
+                variant={filterRange === 'week' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => { setSelectedDate(new Date()); setFilterRange('week'); }}
+              >
+                7 días
+              </Button>
+            </div>
+          </div>
+
+          {profile?.role === 'admin' && (
+            <div className="flex-1 w-full space-y-2">
+              <Label className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" /> Filtrar por Barbero</Label>
+              <Select value={selectedBarberId} onValueChange={setSelectedBarberId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos los barberos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {barbers?.map((barber) => (
+                    <SelectItem key={barber.id} value={barber.id}>{barber.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {appointments?.length === 0 ? (
         <Card className="bg-muted/50 border-dashed border-2">
           <CardContent className="p-12 text-center text-muted-foreground">
-            No hay turnos programados para hoy.
+            No hay turnos programados para el período seleccionado.
           </CardContent>
         </Card>
       ) : (
