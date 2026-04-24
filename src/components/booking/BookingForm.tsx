@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { format } from 'date-fns';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Calendar as CalendarIcon, User, Scissors } from 'lucide-react';
 
@@ -38,6 +38,21 @@ function BookingFormContent() {
         .order('price', { ascending: true });
       if (error) throw error;
       return data as Service[];
+    },
+  });
+
+  const { data: barberWorkingDays } = useQuery({
+    queryKey: ['barber-working-days', selectedBarber?.id],
+    enabled: !!selectedBarber,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from('working_hours') as any)
+        .select('day_of_week, is_active')
+        .eq('barber_id', selectedBarber!.id)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      return data.map((d: any) => d.day_of_week);
     },
   });
 
@@ -162,7 +177,10 @@ function BookingFormContent() {
                     onSelect={setSelectedDate}
                     locale={es}
                     className="rounded-md"
-                    disabled={(date) => date < new Date() || date.getDay() === 0} // No domingos
+                    disabled={(date) =>
+                      isBefore(date, startOfDay(new Date())) ||
+                      (barberWorkingDays !== undefined && !barberWorkingDays.includes(date.getDay()))
+                    }
                   />
                 </div>
                 <div className="flex-1 space-y-4">

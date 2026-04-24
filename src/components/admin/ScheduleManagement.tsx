@@ -76,7 +76,7 @@ export function ScheduleManagement() {
           day_of_week: i,
           start_time: '09:00',
           end_time: '18:00',
-          is_active: i !== 0, // Inactive on Sundays by default
+          is_active: false,
         };
       });
       setLocalHours(fullHours);
@@ -87,7 +87,7 @@ export function ScheduleManagement() {
             day_of_week: i,
             start_time: '09:00',
             end_time: '18:00',
-            is_active: i !== 0,
+            is_active: false,
           }));
           setLocalHours(defaultHours);
     }
@@ -95,6 +95,18 @@ export function ScheduleManagement() {
 
   const saveMutation = useMutation({
     mutationFn: async (hours: WorkingHour[]) => {
+      // Validate active hours
+      for (const h of hours) {
+        if (h.is_active) {
+          if (!h.start_time || !h.end_time) {
+            throw new Error(`Debes definir las horas para el ${DAYS[h.day_of_week]}`);
+          }
+          if (h.start_time >= h.end_time) {
+            throw new Error(`La hora de inicio debe ser anterior a la de fin para el ${DAYS[h.day_of_week]}`);
+          }
+        }
+      }
+
       const { error } = await (supabase
         .from('working_hours') as any)
         .upsert(
