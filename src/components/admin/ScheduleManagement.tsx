@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Clock, Save, Loader2 } from 'lucide-react';
+import { Clock, Save, Loader2, Plus, Trash2 } from 'lucide-react';
 
 const DAYS = [
   'Domingo',
@@ -32,7 +32,7 @@ interface WorkingHour {
 
 export function ScheduleManagement() {
   const queryClient = useQueryClient();
-  const [localHours, setLocalHours] = useState<WorkingHour[]>([]);
+  const [localHours, setLocalHours] = useState<Record<number, WorkingHour[]>>({});
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile'],
@@ -67,60 +67,47 @@ export function ScheduleManagement() {
   });
 
   useEffect(() => {
-    if (remoteHours && profile) {
-      // Merge remote hours with all 7 days
-      const fullHours = Array.from({ length: 7 }, (_, i) => {
-        const remote = remoteHours.find(rh => rh.day_of_week === i);
-        return remote || {
-          barber_id: profile.id,
-          day_of_week: i,
-          start_time: '09:00',
-          end_time: '18:00',
-          is_active: false,
-        };
-      });
-      setLocalHours(fullHours);
-    } else if (profile && !isLoadingHours && !remoteHours) {
-        // Initial state if no hours in DB and we are done loading
-        const defaultHours = Array.from({ length: 7 }, (_, i) => ({
-            barber_id: profile.id,
-            day_of_week: i,
-            start_time: '09:00',
-            end_time: '18:00',
-            is_active: false,
-          }));
-          setLocalHours(defaultHours);
+    if (profile) {
+      const grouped: Record<number, WorkingHour[]> = {};
+      for (let i = 0; i < 7; i++) {
+        const daySlots = remoteHours?.filter(rh => rh.day_of_week === i) || [];
+        grouped[i] = daySlots;
+      }
+      setLocalHours(grouped);
     }
-  }, [remoteHours, profile, isLoadingHours]);
+  }, [remoteHours, profile]);
 
   const saveMutation = useMutation({
-    mutationFn: async (hours: WorkingHour[]) => {
-      // Validate active hours
-      for (const h of hours) {
-        if (h.is_active) {
-          if (!h.start_time || !h.end_time) {
-            throw new Error(`Debes definir las horas para el ${DAYS[h.day_of_week]}`);
-          }
-          if (h.start_time >= h.end_time) {
-            throw new Error(`La hora de inicio debe ser anterior a la de fin para el ${DAYS[h.day_of_week]}`);
-          }
-        }
-      }
+    mutationFn: async (groupedHours: Record<number, WorkingHour[]>) => {
+      if (!profile) return;
 
-      const { error } = await (supabase
+      const allSlots: any[] = [];
+      Object.entries(groupedHours).forEach(([day, slots]) => {
+        slots.forEach(slot => {
+          allSlots.push({
+            barber_id: profile.id,
+            day_of_week: parseInt(day),
+            start_time: slot.start_time,
+            end_time: slot.end_time || '23:59', // Placeholder
+            is_active: true
+          });
+        });
+      });
+
+      // Simple sync: delete all and insert new
+      const { error: deleteError } = await (supabase
         .from('working_hours') as any)
-        .upsert(
-          hours.map(h => ({
-            barber_id: h.barber_id,
-            day_of_week: h.day_of_week,
-            start_time: h.start_time,
-            end_time: h.end_time,
-            is_active: h.is_active,
-          })),
-          { onConflict: 'barber_id, day_of_week' }
-        );
+        .delete()
+        .eq('barber_id', profile.id);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+
+      if (allSlots.length > 0) {
+        const { error: insertError } = await (supabase
+          .from('working_hours') as any)
+          .insert(allSlots);
+        if (insertError) throw insertError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['working-hours'] });
@@ -131,8 +118,28 @@ export function ScheduleManagement() {
     }
   });
 
-  const handleUpdate = (dayIndex: number, updates: Partial<WorkingHour>) => {
-    setLocalHours(prev => prev.map((h, i) => i === dayIndex ? { ...h, ...updates } : h));
+  const addSlot = (dayIndex: number) => {
+    setLocalHours(prev => ({
+      ...prev,
+      [dayIndex]: [
+        ...(prev[dayIndex] || []),
+        { barber_id: profile!.id, day_of_week: dayIndex, start_time: '09:00', end_time: '09:30', is_active: true }
+      ]
+    }));
+  };
+
+  const removeSlot = (dayIndex: number, slotIndex: number) => {
+    setLocalHours(prev => ({
+      ...prev,
+      [dayIndex]: prev[dayIndex].filter((_, i) => i !== slotIndex)
+    }));
+  };
+
+  const updateSlot = (dayIndex: number, slotIndex: number, updates: Partial<WorkingHour>) => {
+    setLocalHours(prev => ({
+      ...prev,
+      [dayIndex]: prev[dayIndex].map((s, i) => i === slotIndex ? { ...s, ...updates } : s)
+    }));
   };
 
   if (isLoadingProfile || isLoadingHours) {
@@ -153,50 +160,48 @@ export function ScheduleManagement() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-4">
-          {DAYS.map((day, index) => {
-            const hour = localHours[index];
-            if (!hour) return null;
+        <div className="space-y-6">
+          {DAYS.map((day, dayIndex) => {
+            const slots = localHours[dayIndex] || [];
 
             return (
-              <div key={day} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border transition-colors ${hour.is_active ? 'bg-card' : 'bg-muted/50 opacity-60'}`}>
-                <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                  <div className="flex items-center h-6">
-                    <input
-                      type="checkbox"
-                      id={`active-${index}`}
-                      checked={hour.is_active}
-                      onChange={(e) => handleUpdate(index, { is_active: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                  </div>
-                  <Label htmlFor={`active-${index}`} className="font-bold min-w-[100px] cursor-pointer">
-                    {day}
-                  </Label>
+              <div key={day} className="space-y-3 p-4 rounded-lg border bg-card">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-lg">{day}</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSlot(dayIndex)}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Añadir Turno
+                  </Button>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground">Desde</Label>
-                    <Input
-                      type="time"
-                      value={hour.start_time.substring(0, 5)}
-                      onChange={(e) => handleUpdate(index, { start_time: e.target.value })}
-                      disabled={!hour.is_active}
-                      className="w-[120px]"
-                    />
+                {slots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">Sin turnos definidos para este día.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {slots.map((slot, slotIndex) => (
+                      <div key={slotIndex} className="flex items-center gap-2 p-2 rounded-md bg-muted/50 group">
+                        <Input
+                          type="time"
+                          value={slot.start_time.substring(0, 5)}
+                          onChange={(e) => updateSlot(dayIndex, slotIndex, { start_time: e.target.value })}
+                          className="h-8 text-sm"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeSlot(dayIndex, slotIndex)}
+                          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground">Hasta</Label>
-                    <Input
-                      type="time"
-                      value={hour.end_time.substring(0, 5)}
-                      onChange={(e) => handleUpdate(index, { end_time: e.target.value })}
-                      disabled={!hour.is_active}
-                      className="w-[120px]"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             );
           })}

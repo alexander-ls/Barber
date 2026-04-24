@@ -52,7 +52,8 @@ function BookingFormContent() {
         .eq('is_active', true);
 
       if (error) throw error;
-      return data.map((d: any) => d.day_of_week);
+      // Get unique days that have at least one active slot
+      return Array.from(new Set(data.map((d: any) => d.day_of_week)));
     },
   });
 
