@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS working_hours (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   is_active BOOLEAN DEFAULT true,
-  UNIQUE(barber_id, day_of_week)
+  UNIQUE(barber_id, day_of_week, start_time)
 );
 
 -- Enable RLS
