@@ -30,7 +30,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
-import { UserPlus, Trash2, Camera, User } from 'lucide-react';
+import { UserPlus, Trash2, Camera, User, Edit2 } from 'lucide-react';
 
 const barberSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
@@ -51,6 +51,7 @@ interface Barber {
 
 export function BarberManagement() {
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
 
@@ -94,54 +95,97 @@ export function BarberManagement() {
     return publicUrl;
   };
 
-  const createBarberMutation = useMutation({
+  const upsertBarberMutation = useMutation({
     mutationFn: async (values: BarberFormValues) => {
-      const { data, error } = await supabase.from('barbers')
-        .insert({
-          name: values.name,
-          bio: values.bio,
-          user_id: values.user_id || null,
-          role: 'barber',
-        })
-        .select()
-        .single();
+      if (editingId) {
+        const { error } = await (supabase.from('barbers') as any)
+          .update({
+            name: values.name,
+            bio: values.bio || null,
+            user_id: values.user_id || null,
+          })
+          .eq('id', editingId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (file) {
-        const publicUrl = await uploadAvatar(data.id);
-        if (publicUrl) {
-          await supabase.from('barbers')
-            .update({ avatar_url: publicUrl })
-            .eq('id', data.id);
+        if (file) {
+          const publicUrl = await uploadAvatar(editingId);
+          if (publicUrl) {
+            await (supabase.from('barbers') as any)
+              .update({ avatar_url: publicUrl })
+              .eq('id', editingId);
+          }
+        }
+      } else {
+        const { data, error } = await (supabase.from('barbers') as any)
+          .insert({
+            name: values.name,
+            bio: values.bio || null,
+            user_id: values.user_id || null,
+            role: 'barber',
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        if (file) {
+          const publicUrl = await uploadAvatar(data.id);
+          if (publicUrl) {
+            await (supabase.from('barbers') as any)
+              .update({ avatar_url: publicUrl })
+              .eq('id', data.id);
+          }
         }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-barbers'] });
-      toast.success('Barbero creado correctamente');
+      queryClient.invalidateQueries({ queryKey: ['barbers'] });
+      toast.success(editingId ? 'Barbero actualizado correctamente' : 'Barbero creado correctamente');
       setIsOpen(false);
-      form.reset();
-      setFile(null);
+      resetForm();
     },
     onError: (error: Error) => {
-      toast.error('Error al crear barbero: ' + error.message);
+      toast.error('Error al guardar barbero: ' + error.message);
     },
   });
 
   const deleteBarberMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('barbers').delete().eq('id', id);
+      const { error } = await (supabase.from('barbers') as any).delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-barbers'] });
+      queryClient.invalidateQueries({ queryKey: ['barbers'] });
       toast.success('Barbero eliminado');
     },
   });
 
+  const resetForm = () => {
+    form.reset({
+      name: '',
+      bio: '',
+      user_id: '',
+    });
+    setEditingId(null);
+    setFile(null);
+  };
+
+  const onEdit = (barber: Barber) => {
+    setEditingId(barber.id);
+    form.reset({
+      name: barber.name,
+      bio: barber.bio || '',
+      user_id: barber.user_id || '',
+    });
+    setFile(null);
+    setIsOpen(true);
+  };
+
   const onSubmit = (values: BarberFormValues) => {
-    createBarberMutation.mutate(values);
+    upsertBarberMutation.mutate(values);
   };
 
   if (isLoadingBarbers) {
@@ -152,7 +196,7 @@ export function BarberManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Gestión de Barberos</h2>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={(val) => { if (!val) resetForm(); setIsOpen(val); }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <UserPlus className="w-4 h-4" /> Nuevo Barbero
@@ -160,9 +204,11 @@ export function BarberManagement() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Añadir Nuevo Barbero</DialogTitle>
+              <DialogTitle>{editingId ? 'Editar Barbero' : 'Añadir Nuevo Barbero'}</DialogTitle>
               <DialogDescription>
-                Completa los datos del barbero. Ingresa el UUID del usuario registrado.
+                {editingId
+                  ? 'Modifica los datos del barbero.'
+                  : 'Completa los datos del barbero. Ingresa el UUID del usuario registrado.'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -201,8 +247,12 @@ export function BarberManagement() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={createBarberMutation.isPending}>
-                  {createBarberMutation.isPending ? 'Guardando...' : 'Guardar Barbero'}
+                <Button type="submit" disabled={upsertBarberMutation.isPending}>
+                  {upsertBarberMutation.isPending
+                    ? 'Guardando...'
+                    : editingId
+                    ? 'Guardar Cambios'
+                    : 'Guardar Barbero'}
                 </Button>
               </DialogFooter>
             </form>
@@ -246,7 +296,10 @@ export function BarberManagement() {
                     {barber.role === 'admin' ? 'Admin' : 'Barbero'}
                   </span>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right flex justify-end gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(barber)}>
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
