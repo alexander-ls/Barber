@@ -30,6 +30,7 @@ export function BarberSelection({ onSelect, selectedId }: BarberSelectionProps) 
       const { data, error } = await supabase
         .from('barbers')
         .select('*')
+        .eq('role', 'barber')
         .order('name', { ascending: true });
 
       if (error) throw error;

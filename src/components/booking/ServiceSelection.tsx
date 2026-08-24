@@ -26,6 +26,7 @@ export function ServiceSelection({ onSelect, selectedId }: ServiceSelectionProps
       const { data, error } = await supabase
         .from('services')
         .select('*')
+        .neq('name', 'Bloqueo de Horario')
         .order('price', { ascending: true });
 
       if (error) throw error;

@@ -3,15 +3,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, startOfDay, endOfDay, addDays, isSameDay, parseISO, addMinutes } from 'date-fns';
+import { format, startOfDay, endOfDay, addDays, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle2, Clock, User, Phone, Mail, Trash2, ShieldAlert, Plus, Calendar as CalendarIcon, Filter, TrendingUp, Users } from 'lucide-react';
+import { CheckCircle2, Clock, User, Phone, Mail, Trash2, Calendar as CalendarIcon, Filter, TrendingUp, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -36,7 +35,7 @@ interface AppointmentWithDetails {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'blocked';
+  status: 'confirmed' | 'completed' | 'cancelled';
   services: { name: string; price: number } | null;
   barbers: { name: string } | null;
 }
@@ -71,6 +70,7 @@ export function AgendaView() {
       const { data, error } = await supabase
         .from('barbers')
         .select('id, name')
+        .eq('role', 'barber')
         .order('name');
       if (error) throw error;
       return data;
@@ -96,7 +96,8 @@ export function AgendaView() {
 
       query = query
         .gte('start_time', start.toISOString())
-        .lt('start_time', end.toISOString());
+        .lt('start_time', end.toISOString())
+        .neq('status', 'blocked');
 
       if (profile?.role === 'admin') {
         if (selectedBarberId !== 'all') {
@@ -114,49 +115,8 @@ export function AgendaView() {
     },
   });
 
-  const [isBlocking, setIsBlocking] = useState(false);
-  const [blockTime, setBlockTime] = useState('');
-  const [blockDuration, setBlockDuration] = useState('30');
-
-  const createBlockMutation = useMutation({
-    mutationFn: async () => {
-      if (!profile) return;
-
-      const { data: service } = await supabase
-        .from('services')
-        .select('id')
-        .eq('name', 'Bloqueo de Horario')
-        .single();
-
-      if (!service) throw new Error('Servicio de bloqueo no encontrado');
-
-      const start = startOfDay(selectedDate);
-      const [hours, minutes] = blockTime.split(':').map(Number);
-      start.setHours(hours, minutes);
-
-      const { error } = await supabase.from('appointments').insert({
-        barber_id: profile.id,
-        service_id: service.id,
-        customer_name: 'BLOQUEO',
-        customer_email: 'admin@barberia.com',
-        start_time: start.toISOString(),
-        end_time: addMinutes(start, parseInt(blockDuration)).toISOString(),
-        status: 'blocked'
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-appointments'] });
-      toast.success('Horario bloqueado');
-      setIsBlocking(false);
-    },
-    onError: (error: Error) => {
-      toast.error('Error al bloquear: ' + error.message);
-    }
-  });
-
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'confirmed' | 'completed' | 'cancelled' | 'blocked' }) => {
+    mutationFn: async ({ id, status }: { id: string, status: 'confirmed' | 'completed' | 'cancelled' }) => {
       const { error } = await supabase
         .from('appointments')
         .update({ status })
@@ -187,9 +147,9 @@ export function AgendaView() {
     );
   }
 
-  const totalCitas = appointments?.filter(a => a.status !== 'blocked').length || 0;
+  const totalCitas = appointments?.length || 0;
   const totalRecaudado = appointments?.reduce((sum, app) => {
-    if (app.status === 'cancelled' || app.status === 'blocked') return sum;
+    if (app.status === 'cancelled') return sum;
     return sum + (app.services?.price || 0);
   }, 0) || 0;
 
@@ -209,37 +169,6 @@ export function AgendaView() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isBlocking} onOpenChange={setIsBlocking}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" /> Bloquear Horario
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Bloquear Horario</DialogTitle>
-                <DialogDescription>
-                  Crea un bloqueo manual en la agenda para el día {format(selectedDate, "d 'de' MMMM", { locale: es })}.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Hora de inicio</Label>
-                  <Input type="time" value={blockTime} onChange={e => setBlockTime(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Duración (minutos)</Label>
-                  <Input type="number" value={blockDuration} onChange={e => setBlockDuration(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsBlocking(false)}>Cancelar</Button>
-                <Button onClick={() => createBlockMutation.mutate()} disabled={!blockTime || createBlockMutation.isPending}>
-                  {createBlockMutation.isPending ? 'Bloqueando...' : 'Confirmar Bloqueo'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
           <Badge variant="outline" className="px-3 py-1 h-fit w-fit">
             {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
           </Badge>
@@ -349,7 +278,7 @@ export function AgendaView() {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {appointments?.map((app) => (
-            <Card key={app.id} className={`${app.status === 'completed' ? 'opacity-60 grayscale' : ''} ${app.status === 'blocked' ? 'border-amber-500 bg-amber-50' : ''}`}>
+            <Card key={app.id} className={app.status === 'completed' ? 'opacity-60 grayscale' : ''}>
               <CardContent className="p-6 flex flex-col md:flex-row gap-6">
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center justify-between">
@@ -357,8 +286,8 @@ export function AgendaView() {
                       <Clock className="w-5 h-5" />
                       {format(new Date(app.start_time), 'HH:mm')} - {format(new Date(app.end_time), 'HH:mm')}
                     </div>
-                    <Badge variant={app.status === 'completed' ? 'secondary' : app.status === 'blocked' ? 'warning' as any : 'default'}>
-                      {app.status === 'confirmed' ? 'Pendiente' : app.status === 'completed' ? 'Completado' : app.status === 'blocked' ? 'Bloqueado' : 'Cancelado'}
+                    <Badge variant={app.status === 'completed' ? 'secondary' : app.status === 'cancelled' ? 'outline' : 'default'}>
+                      {app.status === 'confirmed' ? 'Pendiente' : app.status === 'completed' ? 'Completado' : 'Cancelado'}
                     </Badge>
                   </div>
 
@@ -366,7 +295,7 @@ export function AgendaView() {
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground uppercase font-semibold">Cliente</p>
                       <div className="flex items-center gap-2">
-                        {app.status === 'blocked' ? <ShieldAlert className="w-4 h-4 text-amber-600" /> : <User className="w-4 h-4 text-muted-foreground" />}
+                        <User className="w-4 h-4 text-muted-foreground" />
                         <span className="font-medium">{app.customer_name}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">

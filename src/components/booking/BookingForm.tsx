@@ -35,6 +35,7 @@ function BookingFormContent() {
       const { data, error } = await supabase
         .from('services')
         .select('*')
+        .neq('name', 'Bloqueo de Horario')
         .order('price', { ascending: true });
       if (error) throw error;
       return data as Service[];
