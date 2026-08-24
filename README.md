@@ -133,7 +133,6 @@ Para probar que el sistema de roles y las políticas de seguridad funcionan corr
 - **Como Barbero (`barbero@test.com`)**:
   - Logueate en `/login`.
   - En `/admin`, **solo deberías ver tus propios turnos**.
-  - Puedes usar el botón **"Bloquear Horario"** para cerrar espacios en tu agenda manualamente.
   - Si intentas acceder a datos de otro barbero vía API/Consola, Supabase bloqueará la petición gracias al RLS.
 - **Como Cliente (Sin login)**:
   - Ve a `/booking`.

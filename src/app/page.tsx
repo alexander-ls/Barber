@@ -30,6 +30,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from('services')
         .select('*')
+        .neq('name', 'Bloqueo de Horario')
         .order('price', { ascending: true });
       if (error) throw error;
       return data as Service[];
@@ -42,6 +43,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from('barbers')
         .select('*')
+        .eq('role', 'barber')
         .order('name', { ascending: true });
       if (error) throw error;
       return data as Barber[];
