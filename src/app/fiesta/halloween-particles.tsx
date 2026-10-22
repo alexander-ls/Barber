@@ -23,20 +23,20 @@ export function HalloweenParticles() {
         pauseOnOutsideViewport: true,
         interactivity: { events: { onHover: { enable: false }, onClick: { enable: false } } },
         particles: {
-          number: { value: 48, density: { enable: true, width: 1200, height: 800 } },
+          number: { value: 28, density: { enable: true, width: 1200, height: 800 } },
           color: { value: ['#ff9d32', '#ffc94a', '#b66aff', '#ff6b45'] },
           shape: { type: 'circle' },
-          opacity: { value: { min: 0.16, max: 0.72 }, animation: { enable: true, speed: 0.45, sync: false } },
-          size: { value: { min: 1, max: 4 } },
+          opacity: { value: { min: 0.08, max: 0.38 }, animation: { enable: true, speed: 0.35, sync: false } },
+          size: { value: { min: 0.8, max: 2.8 } },
           move: {
             enable: true,
             direction: 'top',
-            speed: { min: 0.25, max: 0.9 },
+            speed: { min: 0.18, max: 0.62 },
             random: true,
             straight: false,
             outModes: { default: 'out' },
           },
-          shadow: { enable: true, color: '#ff8b32', blur: 8 },
+          shadow: { enable: true, color: '#ff8b32', blur: 5 },
         },
       }}
     />

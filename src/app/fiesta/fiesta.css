@@ -30,11 +30,11 @@
 .halloween-particles { position: absolute !important; z-index: 0; inset: 0; pointer-events: none; }
 .halloween-ornaments { position: absolute; z-index: 2; inset: 0; overflow: hidden; pointer-events: none; }
 .ornament { position: absolute; overflow: visible; filter: drop-shadow(0 5px 12px rgba(0,0,0,.42)); }
-.ornament-bat { width: clamp(3.5rem, 6vw, 6.5rem); opacity: .82; }
+.ornament-bat { width: clamp(3.5rem, 6vw, 6.5rem); opacity: .62; }
 .ornament-bat-left { top: 10%; left: 5%; animation: bat-drift 8s ease-in-out infinite; }
-.ornament-bat-right { top: 25%; right: 5%; width: clamp(2.8rem, 4.5vw, 5rem); opacity: .68; animation: bat-drift-reverse 9s ease-in-out -3s infinite; }
-.ornament-ghost { bottom: 4%; left: 2.7%; width: clamp(3.5rem, 6vw, 6rem); opacity: .84; animation: ghost-float 5s ease-in-out infinite; }
-.ornament-pumpkin { right: 2.8%; bottom: 3%; width: clamp(4rem, 7vw, 7rem); opacity: .9; transform-origin: 50% 88%; animation: pumpkin-rock 6s ease-in-out infinite; }
+.ornament-bat-right { top: 25%; right: 5%; width: clamp(2.8rem, 4.5vw, 5rem); opacity: .5; animation: bat-drift-reverse 9s ease-in-out -3s infinite; }
+.ornament-ghost { bottom: 4%; left: 2.7%; width: clamp(3.5rem, 6vw, 6rem); opacity: .68; animation: ghost-float 5s ease-in-out infinite; }
+.ornament-pumpkin { right: 2.8%; bottom: 3%; width: clamp(4rem, 7vw, 7rem); opacity: .74; transform-origin: 50% 88%; animation: pumpkin-rock 6s ease-in-out infinite; }
 @keyframes bat-drift { 0%, 100% { transform: translate3d(0,0,0) rotate(-4deg); } 50% { transform: translate3d(14px,-9px,0) rotate(3deg); } }
 @keyframes bat-drift-reverse { 0%, 100% { transform: translate3d(0,0,0) rotate(4deg); } 50% { transform: translate3d(-12px,8px,0) rotate(-4deg); } }
 @keyframes ghost-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
@@ -125,7 +125,7 @@
 .detail-spec { display: flex; flex-direction: column; gap: .28rem; padding: .7rem 0 .85rem; border-top: 1px solid rgba(255,236,195,.14); border-bottom: 1px solid rgba(255,236,195,.14); }
 .combo-detail { margin-top: .65rem; }
 .detail-spec span { color: #92849f; font-size: .6rem; font-weight: 800; letter-spacing: .17em; }.detail-spec strong { color: #e6dceb; font-size: .76rem; font-weight: 650; }
-.detail-price-label { margin-top: 1rem; }.detail-price { margin-top: .25rem; color: var(--drink-accent); font-size: clamp(1.55rem,2.5vw,2.2rem); font-weight: 950; letter-spacing: -.04em; white-space: nowrap; transition: color .7s; }
+.detail-price-label { margin-top: 1rem; }.detail-price { width: fit-content; margin-top: .35rem; padding: .28rem .65rem; border-left: 3px solid var(--drink-accent); border-radius: 0 .55rem .55rem 0; background: color-mix(in srgb,var(--drink-accent),transparent 91%); color: var(--drink-accent); font-size: clamp(1.9rem,3.1vw,2.65rem); font-weight: 950; letter-spacing: -.045em; white-space: nowrap; text-shadow: 0 0 20px color-mix(in srgb,var(--drink-accent),transparent 78%); transition: color .7s, background .7s; }
 .detail-price small { margin-left: .35rem; color: #c6b4d3; font-size: .38em; letter-spacing: .16em; }
 .sample-note { margin: .75rem 0 0; color: rgba(228, 214, 168, .72); font-size: clamp(.65rem, .95vw, .8rem); text-align: center; }
 .party-footer { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: clamp(1.5rem, 3.5vw, 3rem); padding: .9rem 1rem; border: 1px solid rgba(255, 170, 45, .45); border-radius: .75rem; background: linear-gradient(90deg, rgba(255, 124, 30, .12), rgba(255, 196, 66, .17), rgba(255, 124, 30, .12)); text-align: center; }
@@ -162,7 +162,7 @@
   .detail-serving { font-size: 1.1rem; }
   .detail-spec span { font-size: .8rem; }
   .detail-spec strong { font-size: 1.05rem; }
-  .detail-price { font-size: clamp(2.3rem, 3vw, 3rem); }
+  .detail-price { font-size: clamp(2.7rem, 3.8vw, 3.45rem); }
   .party-footer { margin-top: .2rem; padding: .7rem .9rem; }
   .party-footer p { font-size: 1.05rem; }
   html:fullscreen .party-menu { padding: .55rem; }
