@@ -12,7 +12,7 @@ const reveal = {
   visible: { opacity: 1, y: 0 },
 };
 
-const GALLERY_INTERVAL = 5000;
+const GALLERY_INTERVAL = 6500;
 
 function TitlePumpkin({ reverse = false, reduceMotion }: { reverse?: boolean; reduceMotion: boolean }) {
   return (
