@@ -1,18 +1,34 @@
 'use client';
 
-import { Beer, Droplets, GlassWater, Sparkles, Wine } from 'lucide-react';
+import { Beer, Droplets, Package, Wine } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ParticlesProvider } from '@tsparticles/react';
 import { useEffect, useState } from 'react';
 import { FullscreenButton } from './fullscreen-button';
 import { HalloweenParticles, initHalloweenParticles } from './halloween-particles';
 
-const products = [
-  { name: 'Cerveza', detail: 'Six pack · Águila o Poker', price: '$ 25.000', icon: Beer, image: '/fiesta/aguila-six-pack.webp', tone: 'amber', serving: 'Six pack · Águila o Poker', note: 'Incluye seis cervezas' },
-  { name: 'Aguardiente', detail: 'Media botella', price: '$ 35.000', icon: Wine, image: '/fiesta/aguardiente-amarillo-trim.webp', artShape: 'bottle', tone: 'violet', serving: 'Media botella', note: 'Presentación media' },
-  { name: 'Whisky', detail: 'Botella', price: '$ 180.000', icon: GlassWater, image: '/fiesta/whisky-buchanans-trim.webp', artShape: 'bottle', tone: 'orange', serving: 'Botella de whisky', note: 'Presentación botella' },
-  { name: 'Agua', detail: 'Botella personal', price: '$ 5.000', icon: Droplets, image: '/fiesta/agua-cristal-trim.png', artShape: 'bottle', tone: 'blue', serving: 'Agua personal', note: 'Botella personal' },
-  { name: 'Todo Rico', detail: 'Paquete personal', price: '$ 5.000', icon: Sparkles, image: '/fiesta/todo-rico-trim.png', artShape: 'logo', tone: 'lime', serving: 'Paquete personal', note: 'Paquete personal' },
+type Product = {
+  name: string;
+  price: string;
+  icon: typeof Beer;
+  image?: string;
+  artShape?: 'bottle' | 'logo';
+  tone: string;
+  detail?: string;
+  detailLabel?: string;
+};
+
+const products: Product[] = [
+  { name: 'Agua', price: '$ 3.000', icon: Droplets, image: '/fiesta/agua-cristal-trim.png', artShape: 'bottle', tone: 'blue' },
+  { name: 'Gatorade', price: '$ 6.000', icon: Droplets, image: '/fiesta/gatorade-trim.webp', artShape: 'bottle', tone: 'orange' },
+  { name: 'Todo Rico', price: '$ 5.000', icon: Beer, image: '/fiesta/todo-rico-trim.png', artShape: 'logo', tone: 'lime', detail: 'Natural o BBQ', detailLabel: 'SABORES' },
+  { name: 'Cerveza', price: '$ 25.000', icon: Beer, image: '/fiesta/aguila-six-pack.webp', tone: 'amber', detail: 'Poker · Águila · Águila Light', detailLabel: 'VARIEDADES' },
+  { name: 'Aguardiente', price: '$ 40.000', icon: Wine, image: '/fiesta/aguardiente-amarillo-trim.webp', artShape: 'bottle', tone: 'violet' },
+  { name: 'Cerveza Club Colombia', price: '$ 30.000', icon: Beer, image: '/fiesta/club-colombia.webp', tone: 'orange' },
+  { name: 'Combo Whisky', price: '$ 250.000', icon: Package, image: '/fiesta/combo-whisky.webp', tone: 'orange', detail: 'Botella + 2 aguas', detailLabel: 'INCLUYE' },
+  { name: 'Combo Old Parr', price: '$ 220.000', icon: Package, image: '/fiesta/combo-old-parr.webp', tone: 'violet', detail: 'Botella + 2 aguas', detailLabel: 'INCLUYE' },
+  { name: 'Combo grande', price: '$ 100.000', icon: Package, image: '/fiesta/combo-grande.webp', tone: 'amber', detail: '2 medias + 1 six + 1 agua', detailLabel: 'INCLUYE' },
+  { name: 'Combo pequeño', price: '$ 65.000', icon: Package, image: '/fiesta/combo-pequeno.webp', tone: 'blue', detail: '1 media + 1 six + 1 agua', detailLabel: 'INCLUYE' },
 ];
 
 const reveal = {
@@ -21,6 +37,19 @@ const reveal = {
 };
 
 const GALLERY_INTERVAL = 5000;
+
+function TitlePumpkin({ reverse = false, reduceMotion }: { reverse?: boolean; reduceMotion: boolean }) {
+  return (
+    <motion.svg className="title-pumpkin" viewBox="0 0 120 110" aria-hidden="true"
+      animate={reduceMotion ? undefined : { rotate: reverse ? [7, -7, 7] : [-7, 7, -7], y: [0, -5, 0], scale: [1, 1.04, 1] }}
+      transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut', delay: reverse ? .3 : 0 }}>
+      <path d="M58 27c-19-17-43-5-45 27-2 29 14 44 46 43 32 1 48-14 46-43-2-32-26-44-45-27-1-10 4-16 12-21-13-4-24 4-26 21Z" fill="#ff8a24" stroke="#ffc94a" strokeWidth="4" strokeLinejoin="round" />
+      <path d="M60 28c-9 10-12 24-12 39s4 25 12 30m1-69c9 10 12 24 12 39s-4 25-12 30" fill="none" stroke="#d85d18" strokeWidth="3" opacity=".8" />
+      <path d="m36 54 14 7-14 7m48-14-14 7 14 7m-38 12q10 12 20 0 10 12 20 0" fill="#35163e" stroke="#35163e" strokeWidth="4" strokeLinejoin="round" />
+      <path d="M57 17c0-8 6-12 14-11-3 5-5 9-5 15" fill="none" stroke="#75a442" strokeWidth="7" strokeLinecap="round" />
+    </motion.svg>
+  );
+}
 
 function HalloweenOrnaments({ reduceMotion }: { reduceMotion: boolean }) {
   return (
@@ -74,7 +103,11 @@ export function AnimatedMenu() {
         <motion.header className="party-heading" initial={enter} animate="visible" variants={reveal} transition={{ duration: .75, ease: 'easeOut' }}>
           <div className="party-kicker"><span /> FONDO FAMILIAR VERSALLES <span /></div>
           <p className="party-intro">¡Que no pare la fiesta!</p>
-          <motion.h1 initial={enter} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .85, delay: .18, ease: 'easeOut' }}>Barra de <span>Halloween</span></motion.h1>
+          <motion.h1 className="party-title" initial={enter} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: .85, delay: .18, ease: 'easeOut' }}>
+            <TitlePumpkin reduceMotion={Boolean(reduceMotion)} />
+            <span className="party-title-copy">Barra de <span>Halloween</span></span>
+            <TitlePumpkin reverse reduceMotion={Boolean(reduceMotion)} />
+          </motion.h1>
           <p className="party-subtitle">Bebidas, antojos y buenos momentos</p>
         </motion.header>
 
@@ -101,6 +134,7 @@ export function AnimatedMenu() {
                 {products.map(({ name, icon: Icon, image, artShape, tone }, index) => {
                   const offset = ((index - activeIndex + products.length + Math.floor(products.length / 2)) % products.length) - Math.floor(products.length / 2);
                   const distance = Math.abs(offset);
+                  if (distance > 2) return null;
                   return (
                     <motion.div className={`barrel-item tone-${tone} ${index === activeIndex ? 'is-current' : ''}`} key={name}
                       animate={{ x: offset * 112, y: distance * 10, rotateY: -offset * 24, scale: 1 - distance * .14, opacity: 1 - distance * .2, z: -distance * 55 }}
@@ -125,8 +159,7 @@ export function AnimatedMenu() {
               <motion.aside className="product-detail" key={activeProduct.name} initial={reduceMotion ? false : { opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={reduceMotion ? undefined : { opacity: 0, x: -18 }} transition={{ duration: .32 }}>
                 <span className="detail-eyebrow">PRODUCTO DESTACADO</span>
                 <h3>{activeProduct.name}</h3>
-                <p className="detail-serving">{activeProduct.serving}</p>
-                <div className="detail-spec"><span>DETALLE</span><strong>{activeProduct.note}</strong></div>
+                {activeProduct.detail && <div className="detail-spec combo-detail"><span>{activeProduct.detailLabel}</span><strong>{activeProduct.detail}</strong></div>}
                 <div className="detail-price-label">PRECIO</div>
                 <div className="detail-price">{activeProduct.price}</div>
               </motion.aside>
