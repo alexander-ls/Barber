@@ -49,7 +49,10 @@
 .party-kicker span:last-child { transform: rotate(180deg); }
 .party-intro { margin: 1.4rem 0 .1rem; color: #ffc653; font-size: clamp(1.1rem, 2vw, 1.7rem); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 .party-heading h1 { margin: 0; color: #fff3d1; font-size: clamp(3rem, 8.6vw, 7.7rem); font-weight: 950; line-height: .98; letter-spacing: -.055em; text-shadow: 0 5px 0 #48215f, 0 10px 28px rgba(0, 0, 0, .58); }
-.party-heading h1 span { color: #ff9f25; }
+.party-heading h1 .party-title-copy > span { color: #ff9f25; }
+.party-title { display: flex; align-items: center; justify-content: center; gap: clamp(.3rem, 1vw, .9rem); }
+.party-title-copy { display: inline-block; }
+.title-pumpkin { width: clamp(2.6rem, 5.2vw, 4.7rem); height: auto; flex: 0 0 auto; filter: drop-shadow(0 5px 0 #48215f) drop-shadow(0 8px 12px rgba(0,0,0,.45)); }
 .party-subtitle { margin: .8rem 0 0; color: #d6cbe3; font-size: clamp(.95rem, 1.7vw, 1.35rem); letter-spacing: .06em; }
 .menu-section { width: min(100%, 1250px); margin: clamp(2rem, 5vw, 4.5rem) auto 0; }
 .section-heading { display: flex; align-items: center; justify-content: center; gap: 1.2rem; margin-bottom: 1.4rem; }
@@ -120,6 +123,7 @@
 .product-detail h3 { margin: .55rem 0 .15rem; color: #fff3d8; font-size: clamp(1.45rem,2.2vw,2rem); font-weight: 950; line-height: 1.05; }
 .detail-serving { margin: .25rem 0 1rem; color: #c4b8d1; font-size: .8rem; }
 .detail-spec { display: flex; flex-direction: column; gap: .28rem; padding: .7rem 0 .85rem; border-top: 1px solid rgba(255,236,195,.14); border-bottom: 1px solid rgba(255,236,195,.14); }
+.combo-detail { margin-top: .65rem; }
 .detail-spec span { color: #92849f; font-size: .6rem; font-weight: 800; letter-spacing: .17em; }.detail-spec strong { color: #e6dceb; font-size: .76rem; font-weight: 650; }
 .detail-price-label { margin-top: 1rem; }.detail-price { margin-top: .25rem; color: var(--drink-accent); font-size: clamp(1.55rem,2.5vw,2.2rem); font-weight: 950; letter-spacing: -.04em; white-space: nowrap; transition: color .7s; }
 .detail-price small { margin-left: .35rem; color: #c6b4d3; font-size: .38em; letter-spacing: .16em; }
@@ -146,6 +150,10 @@
   .index-number { font-size: .95rem; }
   .index-name { font-size: clamp(1.05rem, 1.45vw, 1.35rem); }
   .index-price { font-size: clamp(.95rem, 1.12vw, 1.1rem); }
+  .product-index { gap: .08rem; padding-right: .6rem; }
+  .index-row { min-height: clamp(1.42rem, 2.7vh, 1.8rem); grid-template-columns: 1.7rem minmax(0,1fr) auto; gap: .3rem; padding: .08rem .25rem; }
+  .index-name { font-size: clamp(.76rem, .9vw, .93rem); }
+  .index-price { font-size: clamp(.68rem, .78vw, .84rem); }
   .barrel-item { width: clamp(9rem, 12vw, 12rem); height: clamp(12rem, 25vh, 17rem); margin-left: calc(clamp(9rem, 12vw, 12rem) / -2); margin-top: calc(clamp(12rem, 25vh, 17rem) / -2); }
   .barrel-product-art { width: clamp(5rem, 7vw, 6.5rem); height: clamp(5rem, 7vw, 6.5rem); }
   .barrel-product-name { font-size: clamp(.88rem, 1.05vw, 1.05rem); }
@@ -162,6 +170,10 @@
 }
 
 @media (max-width: 760px) {
+  .party-heading h1 { font-size: clamp(2.4rem, 7vw, 3.8rem); }
+  .party-title { gap: .25rem; }
+  .party-title-copy { display: flex; flex-direction: column; }
+  .title-pumpkin { width: clamp(1.8rem, 6vw, 2.8rem); }
   .ornament-bat-left { top: 6%; left: 1%; width: 3rem; }
   .ornament-bat-right { top: 18%; right: 1%; width: 2.6rem; }
   .ornament-ghost { bottom: 1%; left: 0; width: 3rem; }
@@ -197,7 +209,7 @@
 @media (max-width: 420px) {
   .party-menu { padding: .65rem; }
   .party-frame { padding: 1.65rem .8rem; outline-offset: -6px; }
-  .party-heading h1 { font-size: 2.8rem; }
+  .party-heading h1 { font-size: 2.2rem; }
   .party-kicker { letter-spacing: .14em; }
   .showcase-stage { padding: 0 1.9rem; }
   .showcase-card { min-height: 12rem; }
