@@ -1,35 +1,11 @@
 'use client';
 
-import { Beer, Droplets, Package, Wine } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ParticlesProvider } from '@tsparticles/react';
 import { useEffect, useState } from 'react';
 import { FullscreenButton } from './fullscreen-button';
 import { HalloweenParticles, initHalloweenParticles } from './halloween-particles';
-
-type Product = {
-  name: string;
-  price: string;
-  icon: typeof Beer;
-  image?: string;
-  artShape?: 'bottle' | 'logo';
-  tone: string;
-  detail?: string;
-  detailLabel?: string;
-};
-
-const products: Product[] = [
-  { name: 'Agua', price: '$ 3.000', icon: Droplets, image: '/fiesta/agua-cristal-trim.png', artShape: 'bottle', tone: 'blue' },
-  { name: 'Gatorade', price: '$ 6.000', icon: Droplets, image: '/fiesta/gatorade-trim.webp', artShape: 'bottle', tone: 'orange' },
-  { name: 'Todo Rico', price: '$ 5.000', icon: Beer, image: '/fiesta/todo-rico-trim.png', artShape: 'logo', tone: 'lime', detail: 'Natural o BBQ', detailLabel: 'SABORES' },
-  { name: 'Cerveza', price: '$ 25.000', icon: Beer, image: '/fiesta/aguila-six-pack.webp', tone: 'amber', detail: 'Poker · Águila · Águila Light', detailLabel: 'VARIEDADES' },
-  { name: 'Aguardiente', price: '$ 40.000', icon: Wine, image: '/fiesta/aguardiente-amarillo-trim.webp', artShape: 'bottle', tone: 'violet' },
-  { name: 'Cerveza Club Colombia', price: '$ 30.000', icon: Beer, image: '/fiesta/club-colombia.webp', tone: 'orange' },
-  { name: 'Combo Whisky', price: '$ 250.000', icon: Package, image: '/fiesta/combo-whisky.webp', tone: 'orange', detail: 'Botella + 2 aguas', detailLabel: 'INCLUYE' },
-  { name: 'Combo Old Parr', price: '$ 220.000', icon: Package, image: '/fiesta/combo-old-parr.webp', tone: 'violet', detail: 'Botella + 2 aguas', detailLabel: 'INCLUYE' },
-  { name: 'Combo grande', price: '$ 100.000', icon: Package, image: '/fiesta/combo-grande.webp', tone: 'amber', detail: '2 medias + 1 six + 1 agua', detailLabel: 'INCLUYE' },
-  { name: 'Combo pequeño', price: '$ 65.000', icon: Package, image: '/fiesta/combo-pequeno.webp', tone: 'blue', detail: '1 media + 1 six + 1 agua', detailLabel: 'INCLUYE' },
-];
+import { products, readHiddenProducts } from './menu-products';
 
 const reveal = {
   hidden: { opacity: 0, y: 22 },
@@ -82,13 +58,26 @@ export function AnimatedMenu() {
   const reduceMotion = useReducedMotion();
   const enter = reduceMotion ? false : 'hidden';
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeProduct = products[activeIndex];
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const availableProducts = products.filter(({ id }) => !hiddenIds.includes(id));
+  const activeProduct = availableProducts[activeIndex];
+
+  useEffect(() => {
+    const syncAvailability = () => {
+      setHiddenIds(readHiddenProducts());
+      setActiveIndex(0);
+    };
+    syncAvailability();
+    window.addEventListener('storage', syncAvailability);
+    return () => window.removeEventListener('storage', syncAvailability);
+  }, []);
 
   useEffect(() => {
     if (reduceMotion) return;
-    const timeout = window.setTimeout(() => setActiveIndex((index) => (index + 1) % products.length), GALLERY_INTERVAL);
+    if (availableProducts.length < 2) return;
+    const timeout = window.setTimeout(() => setActiveIndex((index) => (index + 1) % availableProducts.length), GALLERY_INTERVAL);
     return () => window.clearTimeout(timeout);
-  }, [activeIndex, reduceMotion]);
+  }, [activeIndex, availableProducts.length, reduceMotion]);
 
   return (
     <ParticlesProvider init={initHalloweenParticles}>
@@ -116,9 +105,9 @@ export function AnimatedMenu() {
             <span className="section-rule" /><h2 id="drinks-title">BARRA DE LA FIESTA</h2><span className="section-rule" />
           </motion.div>
 
-          <div className={`gallery-board tone-${activeProduct.tone}`}>
-            <nav className="product-index" aria-label="Índice de productos">
-              {products.map(({ name, price }, index) => (
+          {activeProduct ? <div className={`gallery-board tone-${activeProduct.tone}`}>
+            <nav className="product-index" aria-label="Índice de productos disponibles">
+              {availableProducts.map(({ name, price }, index) => (
                 <button className={`index-row ${index === activeIndex ? 'is-current' : ''}`} key={name} type="button" aria-pressed={index === activeIndex} onClick={() => setActiveIndex(index)}>
                   <span className="index-number">{String(index + 1).padStart(2, '0')}</span>
                   <span className="index-name">{name}</span>
@@ -131,12 +120,12 @@ export function AnimatedMenu() {
             <div className="barrel-gallery" aria-label="Galería automática de productos">
               <div className="barrel-glow" />
               <div className="barrel-track">
-                {products.map(({ name, icon: Icon, image, artShape, tone }, index) => {
-                  const offset = ((index - activeIndex + products.length + Math.floor(products.length / 2)) % products.length) - Math.floor(products.length / 2);
+                {availableProducts.map(({ id, name, icon: Icon, image, artShape, tone }, index) => {
+                  const offset = ((index - activeIndex + availableProducts.length + Math.floor(availableProducts.length / 2)) % availableProducts.length) - Math.floor(availableProducts.length / 2);
                   const distance = Math.abs(offset);
                   if (distance > 2) return null;
                   return (
-                    <motion.div className={`barrel-item tone-${tone} ${index === activeIndex ? 'is-current' : ''}`} key={name}
+                    <motion.div className={`barrel-item tone-${tone} ${index === activeIndex ? 'is-current' : ''}`} key={id}
                       animate={{ x: offset * 112, y: distance * 10, rotateY: -offset * 24, scale: 1 - distance * .14, opacity: 1 - distance * .2, z: -distance * 55 }}
                       transition={{ type: 'spring', stiffness: 110, damping: 20 }} style={{ zIndex: 10 - distance }}>
                       <div className={`barrel-product-art ${image ? 'has-product-image' : ''} ${artShape === 'bottle' ? 'has-bottle-image' : ''} ${artShape === 'logo' ? 'has-logo-image' : ''}`}>
@@ -164,7 +153,7 @@ export function AnimatedMenu() {
                 <div className="detail-price">{activeProduct.price}</div>
               </motion.aside>
             </AnimatePresence>
-          </div>
+          </div> : <div className="gallery-board gallery-empty">No hay productos disponibles</div>}
         </motion.section>
 
         <motion.footer className="party-footer" initial={enter} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5, delay: .9 }}>
